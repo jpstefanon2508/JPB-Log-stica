@@ -159,7 +159,12 @@ export function useAuth() {
 
   const isProfileComplete = useCallback(() => {
     if (!profile) return false;
-    return !!(profile.telefone && profile.setor && profile.tax_id && profile.endereco);
+    
+    // We only force clients to complete their profile
+    if (profile.perfil !== 'CLIENTE') return true;
+    
+    // If the user already has a company_id or an empresa, we consider it complete
+    return !!(profile.telefone && profile.empresa);
   }, [profile]);
 
   const value = useMemo(() => ({

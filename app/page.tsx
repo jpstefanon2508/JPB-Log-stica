@@ -130,13 +130,15 @@ export default function Dashboard() {
             collapsed={!isSidebarOpen}
             onClick={() => setActiveTab('dashboard')}
           />
-          <NavItem 
-            icon={<ShoppingCart size={22} />} 
-            label="Novo Pedido" 
-            active={activeTab === 'new-order'} 
-            collapsed={!isSidebarOpen}
-            onClick={() => setActiveTab('new-order')}
-          />
+          {!isEmployee && (
+            <NavItem 
+              icon={<ShoppingCart size={22} />} 
+              label="Novo Pedido" 
+              active={activeTab === 'new-order'} 
+              collapsed={!isSidebarOpen}
+              onClick={() => setActiveTab('new-order')}
+            />
+          )}
           <NavItem 
             icon={<Package size={22} />} 
             label={isAdmin ? 'Pedidos' : isEmployee ? 'Entregas' : 'Meus Pedidos'} 
@@ -657,24 +659,13 @@ function OrderRow({ order, onAction }: { order: Order, onAction: (order: Order, 
         </span>
       </td>
       <td className="px-8 py-6 text-right">
-        {isFinalized ? (
-          <button 
-            onClick={(e) => { e.stopPropagation(); onAction(order, 'REPEAT'); }}
-            className="bg-secondary/10 text-secondary hover:bg-secondary hover:text-white p-2 rounded-lg transition-all flex items-center justify-center ml-auto" 
-            title="Repetir Pedido"
-          >
-            <ShoppingCart size={18} />
-            <span className="ml-1 text-[10px] font-black">+</span>
-          </button>
-        ) : (
           <button 
             onClick={(e) => { e.stopPropagation(); onAction(order, 'EDIT'); }}
             className="text-slate-300 hover:text-secondary p-2 hover:bg-slate-100 rounded-lg transition-all" 
-            title="Editar Pedido"
+            title="Ver Pedido"
           >
             <EllipsisVertical size={20} />
           </button>
-        )}
       </td>
     </tr>
   );

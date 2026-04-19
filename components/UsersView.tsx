@@ -154,6 +154,7 @@ export default function UsersView() {
               <tr>
                 <th className="px-8 py-6 border-b border-slate-100">Usuário</th>
                 <th className="px-8 py-6 border-b border-slate-100">Empresa</th>
+                <th className="px-8 py-6 border-b border-slate-100">Perfil</th>
                 <th className="px-8 py-6 border-b border-slate-100">Status</th>
                 <th className="px-8 py-6 border-b border-slate-100 text-right">Ações</th>
               </tr>
@@ -205,6 +206,18 @@ export default function UsersView() {
                     </td>
                     <td className="px-8 py-6">
                       <p className="text-sm font-bold text-slate-700">{user.empresa || 'N/A'}</p>
+                    </td>
+                    <td className="px-8 py-6">
+                      <span className={`text-[10px] font-black uppercase tracking-widest rounded-lg px-3 py-1.5 ${
+                        user.perfil === 'SUPER_ADMIN' ? 'bg-purple-50 text-purple-700' :
+                        user.perfil === 'ADMIN' ? 'bg-indigo-50 text-indigo-700' :
+                        user.perfil === 'FUNCIONARIO' ? 'bg-blue-50 text-blue-700' :
+                        'bg-slate-100 text-slate-700'
+                      }`}>
+                        {user.perfil === 'SUPER_ADMIN' ? 'Super Admin' : 
+                         user.perfil === 'ADMIN' ? 'Admin' : 
+                         user.perfil === 'FUNCIONARIO' ? 'Funcionário' : 'Cliente'}
+                      </span>
                     </td>
                     <td className="px-8 py-6">
                       <span className={`text-[10px] font-black uppercase tracking-widest rounded-lg px-3 py-1.5 ${

@@ -21,7 +21,7 @@ export default function MyOrdersView({ profile }: { profile: Profile }) {
       .select('id, nome')
       .eq('perfil', 'FUNCIONARIO')
       .eq('status', 'ACTIVE');
-    if (!error && data) setStaffList(data);
+    if (!error && data) setStaffList(data as unknown as Profile[]);
   };
 
   const fetchOrders = async () => {
@@ -313,7 +313,7 @@ export default function MyOrdersView({ profile }: { profile: Profile }) {
                         {/* Status Action Buttons */}
                         {(isAdmin || isEmployee) && (
                           <div className="flex items-center gap-1 mr-2 pr-2 border-r border-slate-100">
-                            {order.status === 'PENDING' && isAdmin && (
+                            {order.status === 'PENDING' && (isAdmin || isEmployee) && (
                               <button 
                                 onClick={(e) => { e.stopPropagation(); updateStatus(order.id, 'CONFIRMED'); }} 
                                 className="p-2 hover:bg-green-50 text-green-600 rounded-lg transition-all" 
@@ -340,11 +340,11 @@ export default function MyOrdersView({ profile }: { profile: Profile }) {
                                 <CheckCircle2 size={18} />
                               </button>
                             )}
-                            {['PENDING', 'CONFIRMED'].includes(order.status) && isAdmin && (
+                            {['PENDING', 'CONFIRMED'].includes(order.status) && (isAdmin || isEmployee) && (
                               <button 
                                 onClick={(e) => { e.stopPropagation(); updateStatus(order.id, 'CANCELED'); }} 
                                 className="p-2 hover:bg-error/5 text-error rounded-lg transition-all" 
-                                title="Recusar"
+                                title="Recusar / Cancelar"
                               >
                                 <XCircle size={18} />
                               </button>

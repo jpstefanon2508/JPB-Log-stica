@@ -15,15 +15,28 @@ export default function CompleteProfilePage() {
   
   const [formData, setFormData] = useState({
     telefone: '',
-    setor: '',
+    empresa: '',
+    company_id: '',
     tax_id: '',
     endereco: '',
   });
+  const [newCompany, setNewCompany] = useState(false);
 
   const router = useRouter();
 
+  const [companies, setCompanies] = useState<{ id: string, nome: string }[]>([]);
+  
   useEffect(() => {
     let mounted = true;
+    
+    const fetchCompanies = async () => {
+      const { data, error } = await supabase.from('companies').select('id, nome').order('nome');
+      if (!error && mounted && data) {
+        setCompanies(data);
+      }
+    };
+    fetchCompanies();
+
     
     // Safety timeout
     const timeoutId = setTimeout(() => {
@@ -71,8 +84,18 @@ export default function CompleteProfilePage() {
           .single();
         
         if (insertError) {
-          console.error('CompleteProfile: Error creating profile:', insertError.message || insertError);
-          setError('Erro ao criar perfil inicial: ' + (insertError.message || 'Erro desconhecido'));
+          if (insertError.code === '23505' || (insertError.message && insertError.message.includes('duplicate key'))) {
+            console.log('CompleteProfile: Profile already created by trigger. Refetching...');
+            const { data: refetchedProfile } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', session.user.id)
+              .maybeSingle();
+            profile = refetchedProfile;
+          } else {
+            console.error('CompleteProfile: Error creating profile:', insertError.message || insertError);
+            setError('Erro ao criar perfil inicial: ' + (insertError.message || 'Erro desconhecido'));
+          }
         } else {
           profile = newProfile;
         }
@@ -82,7 +105,8 @@ export default function CompleteProfilePage() {
         console.log('CompleteProfile: Profile found/created');
         setFormData({
           telefone: profile.telefone || '',
-          setor: profile.setor || '',
+          empresa: profile.empresa || '',
+          company_id: profile.company_id || '',
           tax_id: profile.tax_id || '',
           endereco: profile.endereco || '',
         });
@@ -151,11 +175,30 @@ export default function CompleteProfilePage() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
 
+    let finalCompanyId = formData.company_id || null;
+
+    // Se ele escolheu escrever uma nova empresa, criamos no banco de empresas
+    if (newCompany && formData.empresa) {
+      const { data: newCompData, error: compError } = await supabase
+        .from('companies')
+        .insert([{ nome: formData.empresa }])
+        .select('id')
+        .single();
+        
+      if (!compError && newCompData) {
+        finalCompanyId = newCompData.id;
+      } else {
+        console.error('Error creating new company:', compError);
+        // We will continue even if it fails, and just save string in profile
+      }
+    }
+
     const { error } = await supabase
       .from('profiles')
       .update({
         telefone: formData.telefone,
-        setor: formData.setor,
+        empresa: formData.empresa,
+        company_id: finalCompanyId,
         tax_id: formData.tax_id,
         endereco: formData.endereco,
         status: 'PENDING', // Keep as pending until admin approves if that's the flow
@@ -233,24 +276,50 @@ export default function CompleteProfilePage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Setor / Departamento</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Empresa Vinculada</label>
                 <div className="relative">
                   <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                   <select 
-                    required
-                    value={formData.setor}
-                    onChange={(e) => setFormData({...formData, setor: e.target.value})}
+                    required={!newCompany}
+                    value={newCompany ? 'new' : formData.company_id}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === 'new') {
+                        setNewCompany(true);
+                        setFormData({...formData, company_id: '', empresa: ''});
+                      } else {
+                        setNewCompany(false);
+                        const comp = companies.find(c => c.id === val);
+                        setFormData({...formData, company_id: val, empresa: comp?.nome || ''});
+                      }
+                    }}
                     className="w-full bg-slate-50 border border-slate-100 rounded-xl py-4 pl-12 pr-4 text-slate-900 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none appearance-none"
                   >
-                    <option value="">Selecione o Setor</option>
-                    <option value="Logística">Logística</option>
-                    <option value="Compras">Compras</option>
-                    <option value="Operações">Operações</option>
-                    <option value="Financeiro">Financeiro</option>
-                    <option value="Outro">Outro</option>
+                    <option value="">Selecione sua empresa</option>
+                    {companies.map(c => (
+                      <option key={c.id} value={c.id}>{c.nome}</option>
+                    ))}
+                    <option value="new">Outra / Nenhuma das opções</option>
                   </select>
                 </div>
               </div>
+
+              {newCompany && (
+                <div className="space-y-2 md:col-span-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nome da Nova Empresa</label>
+                  <div className="relative">
+                    <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                    <input 
+                      type="text" 
+                      required
+                      value={formData.empresa}
+                      onChange={(e) => setFormData({...formData, empresa: e.target.value})}
+                      placeholder="Qual o nome da sua empresa?"
+                      className="w-full bg-slate-50 border border-slate-100 rounded-xl py-4 pl-12 pr-4 text-slate-900 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
+                    />
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-2 md:col-span-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Identificação Fiscal (CNPJ/CPF)</label>

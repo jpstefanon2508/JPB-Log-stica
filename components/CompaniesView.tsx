@@ -420,7 +420,7 @@ function InfoItem({ icon, label, value }: { icon: React.ReactNode, label: string
   return (
     <div className="space-y-1.5">
       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-        {React.cloneElement(icon as React.ReactElement, { size: 12 })} {label}
+        {React.isValidElement(icon) ? React.cloneElement(icon as React.ReactElement<{ size?: number }>, { size: 14 }) : icon} {label}
       </p>
       <p className="text-sm font-bold text-slate-700 bg-slate-50 p-3 rounded-xl border border-slate-100">
         {value || 'Não informado'}
