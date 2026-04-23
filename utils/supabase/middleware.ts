@@ -8,8 +8,8 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  let supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  let supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/[\r\n\t]/g, '').trim();
+  let supabaseKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '').replace(/[\r\n\t]/g, '').trim();
 
   if (!supabaseUrl || !supabaseKey) {
     return response;
