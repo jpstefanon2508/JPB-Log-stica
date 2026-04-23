@@ -7,6 +7,7 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
+  output: "standalone",
   // Allow access to remote image placeholder.
   // Force cache invalidation to fix "Cannot find module './627.js'" and "/_document" build errors.
   // Last update: 2026-04-12T12:46:00Z
