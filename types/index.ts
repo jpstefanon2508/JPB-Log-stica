@@ -56,12 +56,14 @@ export interface Order {
   user_id: string;
   quantidade_kg: number;
   data_solicitada: string;
+  time_solicitada?: string;
   local_entrega: string;
   observacoes?: string;
   status: OrderStatus;
   assigned_to?: string;
   is_recurring?: boolean;
   frequency?: string;
+  recurring_days?: string[];
   confirmed_at?: string;
   in_delivery_at?: string;
   delivered_at?: string;

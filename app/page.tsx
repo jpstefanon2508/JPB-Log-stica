@@ -45,11 +45,15 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
 
   useEffect(() => {
+    // Only handle redirects if we are definitively not loading anymore
     if (!loading) {
       if (!user) {
-        if (typeof window !== 'undefined') window.location.href = '/login';
+        // Use Next.js router for a cleaner client-side redirect where possible
+        // but avoid router push if it's trapped in a loading state. 
+        // Using replace prevents back-button loops.
+        router.replace('/login');
       } else if (!isProfileComplete()) {
-        if (typeof window !== 'undefined') window.location.href = '/complete-profile';
+        router.replace('/complete-profile');
       }
     }
   }, [user, loading, router, isProfileComplete]);
@@ -632,8 +636,11 @@ function KPICard({ icon, label, value, trend, status }: { icon: React.ReactNode,
 
 function OrderRow({ order, onAction }: { order: Order, onAction: (order: Order, type: 'REPEAT' | 'EDIT') => void }) {
   const isFinalized = ['DELIVERED', 'COMPLETED', 'CANCELED'].includes(order.status);
-  const id = `#${order.id.slice(0, 8).toUpperCase()}`;
-  const date = new Date(order.data_solicitada).toLocaleDateString('pt-BR');
+  const id = order.codigo_pedido ? `#${order.codigo_pedido}` : `#${order.id.slice(0, 8).toUpperCase()}`;
+  let date = new Date(order.data_solicitada).toLocaleDateString('pt-BR');
+  if (order.time_solicitada) {
+    date += ` às ${order.time_solicitada.slice(0, 5)}`;
+  }
   const qty = `${order.quantidade_kg} kg`;
   
   const statusColor = 

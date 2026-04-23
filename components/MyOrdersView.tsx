@@ -172,6 +172,7 @@ export default function MyOrdersView({ profile }: { profile: Profile }) {
         .update({
           quantidade_kg: editingOrder.quantidade_kg,
           data_solicitada: editingOrder.data_solicitada,
+          time_solicitada: editingOrder.time_solicitada,
           local_entrega: editingOrder.local_entrega,
           observacoes: editingOrder.observacoes,
           status: editingOrder.status
@@ -335,6 +336,7 @@ export default function MyOrdersView({ profile }: { profile: Profile }) {
                       </p>
                       <p className="text-[10px] text-slate-500 font-medium mt-1">
                         {new Date(order.data_solicitada).toLocaleDateString('pt-BR')}
+                        {order.time_solicitada && ` às ${order.time_solicitada.slice(0, 5)}`}
                       </p>
                     </td>
                     {(isAdmin || isEmployee) && (
@@ -548,6 +550,15 @@ export default function MyOrdersView({ profile }: { profile: Profile }) {
                       type="date" 
                       value={editingOrder.data_solicitada}
                       onChange={(e) => setEditingOrder({...editingOrder, data_solicitada: e.target.value})}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-4 px-4 focus:ring-2 focus:ring-secondary/20 outline-none font-medium"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Horário de Entrega</label>
+                    <input 
+                      type="time" 
+                      value={editingOrder.time_solicitada || ''}
+                      onChange={(e) => setEditingOrder({...editingOrder, time_solicitada: e.target.value})}
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl py-4 px-4 focus:ring-2 focus:ring-secondary/20 outline-none font-medium"
                     />
                   </div>

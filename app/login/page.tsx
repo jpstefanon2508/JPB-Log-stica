@@ -25,7 +25,7 @@ export default function LoginPage() {
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        if (typeof window !== 'undefined') window.location.href = '/';
+        router.replace('/');
       }
     };
     checkUser();
@@ -53,7 +53,7 @@ export default function LoginPage() {
       }
       setLoading(false);
     } else {
-      if (typeof window !== 'undefined') window.location.href = '/';
+      router.replace('/');
     }
   };
 

@@ -58,27 +58,27 @@ export function useAuth() {
     // Safety timeout: stop loading after 5 seconds no matter what
     const timeoutId = setTimeout(() => {
       if (mounted) {
-        console.warn('Auth: Safety timeout reached, forcing loading to false');
-        setLoading(false);
+         setLoading(false);
       }
     }, 5000);
 
     const initializeAuth = async () => {
-      console.log('Auth: Initializing session check...');
       try {
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
-          console.error('Auth: Session error during init:', sessionError);
           if (sessionError.message.includes('Refresh Token Not Found') || sessionError.message.includes('Invalid Refresh Token')) {
-            console.log('Auth: Invalid token, signing out...');
-            await supabase.auth.signOut();
-            if (mounted) {
-              setUser(null);
-              setProfile(null);
-              setLoading(false);
-            }
-            return;
+             await supabase.auth.signOut();
+             if (typeof window !== 'undefined') {
+                window.localStorage.clear();
+                window.sessionStorage.clear();
+             }
+             if (mounted) {
+               setUser(null);
+               setProfile(null);
+               setLoading(false);
+             }
+             return;
           }
           throw sessionError;
         }
@@ -86,19 +86,16 @@ export function useAuth() {
         if (!mounted) return;
 
         if (session?.user) {
-          console.log('Auth: User session found:', session.user.id);
           setUser(session.user);
           await fetchProfile(session.user.id);
         } else {
-          console.log('Auth: No active session found');
           setUser(null);
           setProfile(null);
         }
       } catch (err) {
-        console.error('Auth: Critical error during initialization:', err);
+        console.error('Auth check error', err);
       } finally {
         if (mounted) {
-          console.log('Auth: Initialization finished');
           setLoading(false);
         }
       }
@@ -107,11 +104,9 @@ export function useAuth() {
     initializeAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth: State changed:', event, session?.user?.id);
       if (!mounted) return;
 
       if (event === 'INITIAL_SESSION') {
-        // initializeAuth already handles this
         return;
       }
 
@@ -124,9 +119,7 @@ export function useAuth() {
 
       if (session?.user) {
         setUser(session.user);
-        // Only fetch if we don't have a profile or the user changed
         if (!profileRef.current || profileRef.current.id !== session.user.id) {
-          console.log('Auth: Profile missing or user changed, fetching profile...');
           setLoading(true);
           await fetchProfile(session.user.id);
           setLoading(false);

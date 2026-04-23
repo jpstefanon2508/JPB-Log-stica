@@ -1,30 +1,62 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Scale, MapPin, Calendar, FileText, Send, Loader2, CheckCircle2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Scale, MapPin, Calendar, Clock, FileText, Send, Loader2, CheckCircle2 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { supabase } from '@/lib/supabase';
 import { Profile } from '@/types';
 
 export default function NewOrderView({ profile }: { profile: Profile }) {
   const [kg, setKg] = useState('');
+  
+  // Date and Time settings
   const [date, setDate] = useState('');
+  const [time, setTime] = useState('');
+  
   const [location, setLocation] = useState(profile.endereco || '');
   const [obs, setObs] = useState('');
+  
+  // Recurring
   const [isRecurring, setIsRecurring] = useState(false);
   const [frequency, setFrequency] = useState('WEEKLY');
+  const [recurringDays, setRecurringDays] = useState<string[]>([]);
+  
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+
+  // Set default date and time on mount
+  useEffect(() => {
+    const now = new Date();
+    
+    // Default Date is today
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    setDate(`${yyyy}-${mm}-${dd}`);
+
+    // Default time is now + 1 hour
+    now.setHours(now.getHours() + 1);
+    const hh = String(now.getHours()).padStart(2, '0');
+    const min = String(now.getMinutes()).padStart(2, '0');
+    setTime(`${hh}:${min}`);
+  }, []);
 
   const quickAdd = (amount: number) => {
     const current = parseFloat(kg) || 0;
     setKg((current + amount).toString());
   };
 
+  const handleDayToggle = (day: string) => {
+    setRecurringDays(prev => 
+      prev.includes(day) 
+        ? prev.filter(d => d !== day)
+        : [...prev, day]
+    );
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Allow SUPER_ADMIN to bypass validation check
     if (profile.status !== 'ACTIVE' && profile.perfil !== 'SUPER_ADMIN') {
       setMessage({ type: 'error', text: 'Sua conta ainda não foi validada para realizar pedidos.' });
       return;
@@ -36,14 +68,18 @@ export default function NewOrderView({ profile }: { profile: Profile }) {
       return;
     }
 
-    // Date validation: Prevent past dates
-    const selectedDate = new Date(date);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Time validation: Minimum 1 hour ahead
+    const selectedDateTime = new Date(`${date}T${time}`);
+    const now = new Date();
+    const minAllowedTime = new Date(now.getTime() + 60 * 60 * 1000); // Now + 1h
     
-    // Adjust for timezone if necessary, but simple comparison usually works for DATE type
-    if (selectedDate < today) {
-      setMessage({ type: 'error', text: 'Não é possível realizar pedidos para datas que já passaram.' });
+    if (selectedDateTime < minAllowedTime) {
+      setMessage({ type: 'error', text: 'O horário de entrega deve ser de no mínimo 1 hora a partir de agora.' });
+      return;
+    }
+
+    if (isRecurring && frequency === 'WEEKLY' && recurringDays.length === 0) {
+      setMessage({ type: 'error', text: 'Para pedidos semanais, por favor selecione ao menos um dia da semana.' });
       return;
     }
 
@@ -52,27 +88,44 @@ export default function NewOrderView({ profile }: { profile: Profile }) {
 
     const { error } = await supabase.from('orders').insert({
       user_id: profile.id,
-      quantidade_kg: parseFloat(kg),
+      quantidade_kg: quantity,
       data_solicitada: date,
+      time_solicitada: time,
       local_entrega: location,
       observacoes: obs,
       status: 'PENDING',
       is_recurring: isRecurring,
-      frequency: isRecurring ? frequency : null
+      frequency: isRecurring ? frequency : null,
+      recurring_days: isRecurring && frequency === 'WEEKLY' ? recurringDays : null
     });
 
     if (error) {
       console.error('NewOrderView: Error creating order:', error);
+      let errorMsg = error.message;
+      if (!errorMsg || Object.keys(error).length === 0) {
+        errorMsg = JSON.stringify(error);
+        if (errorMsg === '{}') {
+           errorMsg = 'Erro desconhecido. Verifique se você rodou as migrations recentes no Supabase (time_solicitada, recurring_days).';
+        }
+      } else if (errorMsg.includes('Could not find the') || error.code === 'PGRST204') {
+         errorMsg = 'O banco de dados está desatualizado. Você precisa ir no seu Dashboard do Supabase > SQL Editor e rodar o script de atualização de colunas (time_solicitada, recurring_days).';
+      }
+
       setMessage({ 
         type: 'error', 
-        text: `Erro ao criar pedido: ${error.message}. Verifique se seu perfil está ativo no banco de dados.` 
+        text: `Falha: ${errorMsg}` 
       });
     } else {
-      setMessage({ type: 'success', text: 'Pedido realizado com sucesso!' });
+      setMessage({ type: 'success', text: 'Pedido agendado com sucesso!' });
       setKg('');
-      setDate('');
       setObs('');
       setIsRecurring(false);
+      setRecurringDays([]);
+      
+      // Reset times to +1h default
+      const n = new Date();
+      n.setHours(n.getHours() + 1);
+      setTime(`${String(n.getHours()).padStart(2, '0')}:${String(n.getMinutes()).padStart(2, '0')}`);
     }
     setLoading(false);
   };
@@ -126,17 +179,32 @@ export default function NewOrderView({ profile }: { profile: Profile }) {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
-              <Calendar size={14} /> Data Solicitada
-            </label>
-            <input 
-              type="date" 
-              required
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-4 focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none transition-all"
-            />
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+                <Calendar size={14} /> Data Solicitada
+              </label>
+              <input 
+                type="date" 
+                required
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-4 focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none transition-all"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+                <Clock size={14} /> Horário de Entrega
+              </label>
+              <input 
+                type="time" 
+                required
+                value={time}
+                onChange={(e) => setTime(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-4 focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none transition-all"
+              />
+            </div>
           </div>
         </div>
 
@@ -173,19 +241,57 @@ export default function NewOrderView({ profile }: { profile: Profile }) {
             <motion.div 
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
-              className="pt-4 border-t border-slate-200 space-y-2"
+              className="pt-4 border-t border-slate-200 space-y-4"
             >
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Frequência</label>
-              <select 
-                value={frequency}
-                onChange={(e) => setFrequency(e.target.value)}
-                className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none transition-all font-bold text-sm"
-              >
-                <option value="WEEKLY">Semanal</option>
-                <option value="BIWEEKLY">Quinzenal</option>
-                <option value="MONTHLY">Mensal</option>
-              </select>
-              <p className="text-[10px] text-slate-500 italic mt-2">O pedido será gerado automaticamente com base nesta frequência.</p>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Frequência</label>
+                <select 
+                  value={frequency}
+                  onChange={(e) => {
+                    setFrequency(e.target.value);
+                    if (e.target.value !== 'WEEKLY') {
+                      setRecurringDays([]); // Reset days if not weekly
+                    }
+                  }}
+                  className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none transition-all font-bold text-sm"
+                >
+                  <option value="WEEKLY">Semanal</option>
+                  <option value="BIWEEKLY">Quinzenal</option>
+                  <option value="MONTHLY">Mensal</option>
+                </select>
+              </div>
+
+              {frequency === 'WEEKLY' && (
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Dias da Semana</label>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { id: 'MONDAY', label: 'Seg' },
+                      { id: 'TUESDAY', label: 'Ter' },
+                      { id: 'WEDNESDAY', label: 'Qua' },
+                      { id: 'THURSDAY', label: 'Qui' },
+                      { id: 'FRIDAY', label: 'Sex' },
+                      { id: 'SATURDAY', label: 'Sáb' },
+                      { id: 'SUNDAY', label: 'Dom' },
+                    ].map((day) => (
+                      <button
+                        key={day.id}
+                        type="button"
+                        onClick={() => handleDayToggle(day.id)}
+                        className={`px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+                          recurringDays.includes(day.id)
+                            ? 'bg-secondary text-white shadow-md'
+                            : 'bg-white border text-slate-500 border-slate-200 hover:border-secondary'
+                        }`}
+                      >
+                        {day.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              <p className="text-[10px] text-slate-500 italic mt-2">O pedido será gerado automaticamente com base nesta frequência e no horário definido acima.</p>
             </motion.div>
           )}
         </div>
