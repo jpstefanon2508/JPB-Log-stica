@@ -25,7 +25,7 @@ export default function LoginPage() {
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        router.push('/');
+        if (typeof window !== 'undefined') window.location.href = '/';
       }
     };
     checkUser();
@@ -40,16 +40,20 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
     if (error) {
-      setError(error.message === 'Invalid login credentials' ? 'E-mail ou senha incorretos.' : error.message);
+      if (error.message === 'Invalid login credentials') {
+        setError('Acesso negado. Tente novamente ou cadastre-se.');
+      } else {
+        setError(error.message);
+      }
       setLoading(false);
     } else {
-      router.push('/');
+      if (typeof window !== 'undefined') window.location.href = '/';
     }
   };
 
@@ -71,7 +75,7 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -84,14 +88,23 @@ export default function LoginPage() {
 
     if (error) {
       console.error('SignUp Error:', error);
-      setError(error.message + (error.status ? ` (Status: ${error.status})` : ''));
+      if (error.message.includes('User already registered')) {
+        setError('Este e-mail já está cadastrado. Por favor, vá em "Entrar agora".');
+      } else {
+        setError(error.message + (error.status ? ` (Status: ${error.status})` : ''));
+      }
       setLoading(false);
     } else {
-      setSuccess('Conta criada com sucesso! Redirecionando...');
-      // Small delay to show success message
-      setTimeout(() => {
-        router.push('/complete-profile');
-      }, 1500);
+      if (!data.session) {
+        setSuccess('Contra criada. Confirme seu e-mail para fazer login.');
+        setLoading(false);
+      } else {
+        setSuccess('Conta criada com sucesso! Redirecionando...');
+        // Small delay to show success message
+        setTimeout(() => {
+          router.push('/complete-profile');
+        }, 1500);
+      }
     }
   };
 

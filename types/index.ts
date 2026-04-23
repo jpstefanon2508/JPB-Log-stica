@@ -52,6 +52,7 @@ export interface StaffSchedule {
 
 export interface Order {
   id: string;
+  codigo_pedido?: string;
   user_id: string;
   quantidade_kg: number;
   data_solicitada: string;
@@ -84,4 +85,15 @@ export interface OrderHistory {
   changed_by: string;
   timestamp: string;
   observacao?: string;
+}
+
+export interface AppNotification {
+  id: string;
+  user_id?: string;
+  order_id?: string;
+  title: string;
+  message: string;
+  type: 'NEW_ORDER' | 'STATUS_UPDATE' | 'SYSTEM' | 'ASSIGNMENT';
+  read: boolean;
+  created_at: string;
 }

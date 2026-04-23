@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter, Manrope } from 'next/font/google';
 import './globals.css';
+import { Toaster } from 'sonner';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -26,7 +27,9 @@ export default function RootLayout({
     <html lang="pt-BR" className={`${inter.variable} ${manrope.variable}`}>
       <body className="bg-background text-on-surface font-sans" suppressHydrationWarning>
         {children}
+        <Toaster richColors position="top-right" />
       </body>
     </html>
   );
 }
+

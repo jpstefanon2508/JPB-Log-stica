@@ -132,38 +132,33 @@ export default function CompleteProfilePage() {
     setError(null);
     
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (session) {
-        console.log('CompleteProfile: Clearing profile data before logout...');
-        // Clear the pending info in the profile table
-        await supabase
-          .from('profiles')
-          .update({
-            telefone: null,
-            setor: null,
-            tax_id: null,
-            endereco: null
-          })
-          .eq('id', session.user.id);
-      }
-
+      // Don't try to query anything complex that could fail with RLS. Just sign out.
       console.log('CompleteProfile: Signing out...');
+      
+      // Attempt to clear from Supabase
       await supabase.auth.signOut();
       
-      // Clear any local storage or session data that might persist
+      // Clear all local storage manually to ensure no cached session
       if (typeof window !== 'undefined') {
         window.localStorage.clear();
         window.sessionStorage.clear();
+        
+        // Also forcibly clear common Next.js / Supabase cookies from the browser
+        document.cookie.split(";").forEach((c) => {
+          document.cookie = c
+            .replace(/^ +/, "")
+            .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+        });
       }
 
-      router.replace('/login');
+      // Hard redirect to break out of React Router state loops
+      window.location.href = '/login';
     } catch (err) {
       console.error('CompleteProfile: Error in handleCancel:', err);
-      // Force redirect even on error
-      router.replace('/login');
+      // Hard redirect even on error
+      window.location.href = '/login';
     } finally {
-      setCancelling(false);
+      // Don't reset cancelling to prevent re-clicks while browser navigates
     }
   };
 

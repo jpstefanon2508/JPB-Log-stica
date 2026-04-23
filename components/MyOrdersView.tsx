@@ -14,6 +14,13 @@ export default function MyOrdersView({ profile }: { profile: Profile }) {
   const [trackingOrder, setTrackingOrder] = useState<Order | null>(null);
 
   const [staffList, setStaffList] = useState<Profile[]>([]);
+  
+  // Filters
+  const [filterStatus, setFilterStatus] = useState<string>('ALL');
+  const [filterStartDate, setFilterStartDate] = useState<string>('');
+  const [filterEndDate, setFilterEndDate] = useState<string>('');
+  const [filterClient, setFilterClient] = useState<string>('');
+  const [filterStaff, setFilterStaff] = useState<string>('');
 
   const fetchStaff = async () => {
     const { data, error } = await supabase
@@ -56,7 +63,7 @@ export default function MyOrdersView({ profile }: { profile: Profile }) {
 
     // Subscribe to real-time changes
     const channel = supabase
-      .channel('orders_changes')
+      .channel('orders_changes_my_orders')
       .on('postgres_changes', { 
         event: '*', 
         schema: 'public', 
@@ -211,6 +218,23 @@ export default function MyOrdersView({ profile }: { profile: Profile }) {
   const isAdmin = profile.perfil === 'ADMIN' || profile.perfil === 'SUPER_ADMIN';
   const isEmployee = profile.perfil === 'FUNCIONARIO';
 
+  const filteredOrders = orders.filter(o => {
+    if (filterStatus !== 'ALL' && o.status !== filterStatus) return false;
+    if (filterStartDate && new Date(o.data_solicitada) < new Date(filterStartDate)) return false;
+    if (filterEndDate && new Date(o.data_solicitada) > new Date(filterEndDate)) return false;
+    
+    if (filterClient) {
+      const clientName = o.profiles?.nome?.toLowerCase() || '';
+      const companyName = o.profiles?.empresa?.toLowerCase() || '';
+      const query = filterClient.toLowerCase();
+      if (!clientName.includes(query) && !companyName.includes(query)) return false;
+    }
+    
+    if (filterStaff && o.assigned_to !== filterStaff) return false;
+    
+    return true;
+  });
+
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center">
@@ -232,16 +256,56 @@ export default function MyOrdersView({ profile }: { profile: Profile }) {
         </button>
       </div>
 
+      <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-200/50 flex flex-wrap gap-4 items-end">
+        <div className="flex-1 min-w-[200px]">
+          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Período De</label>
+          <input type="date" value={filterStartDate} onChange={e => setFilterStartDate(e.target.value)} className="w-full bg-slate-50 border border-slate-100 rounded-xl py-3 px-4 text-sm" />
+        </div>
+        <div className="flex-1 min-w-[200px]">
+          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Até</label>
+          <input type="date" value={filterEndDate} onChange={e => setFilterEndDate(e.target.value)} className="w-full bg-slate-50 border border-slate-100 rounded-xl py-3 px-4 text-sm" />
+        </div>
+        <div className="flex-1 min-w-[200px]">
+          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Status</label>
+          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="w-full bg-slate-50 border border-slate-100 rounded-xl py-3 px-4 text-sm appearance-none cursor-pointer">
+            <option value="ALL">Todos os status</option>
+            <option value="PENDING">Pendente</option>
+            <option value="CONFIRMED">Confirmado</option>
+            <option value="IN_DELIVERY">Em Rota</option>
+            <option value="DELIVERED">Entregue</option>
+            <option value="CANCELED">Cancelado</option>
+          </select>
+        </div>
+        
+        {isAdmin && (
+          <>
+            <div className="flex-1 min-w-[200px]">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Empresa/Cliente</label>
+              <input type="text" placeholder="Nome ou Empresa" value={filterClient} onChange={e => setFilterClient(e.target.value)} className="w-full bg-slate-50 border border-slate-100 rounded-xl py-3 px-4 text-sm outline-none focus:ring-2 focus:ring-primary/20" />
+            </div>
+            <div className="flex-1 min-w-[200px]">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Motorista</label>
+              <select value={filterStaff} onChange={e => setFilterStaff(e.target.value)} className="w-full bg-slate-50 border border-slate-100 rounded-xl py-3 px-4 text-sm appearance-none cursor-pointer">
+                <option value="">Todos os Motoristas</option>
+                {staffList.map(staff => (
+                  <option key={staff.id} value={staff.id}>{staff.nome}</option>
+                ))}
+              </select>
+            </div>
+          </>
+        )}
+      </div>
+
       {loading ? (
         <div className="space-y-4">
           {[1, 2, 3, 4, 5].map(i => (
             <div key={i} className="h-16 bg-slate-100 animate-pulse rounded-2xl"></div>
           ))}
         </div>
-      ) : orders.length === 0 ? (
+      ) : filteredOrders.length === 0 ? (
         <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-slate-300">
           <Package size={48} className="mx-auto text-slate-300 mb-4" />
-          <p className="text-slate-500 font-medium">Nenhum pedido encontrado.</p>
+          <p className="text-slate-500 font-medium">Nenhum pedido encontrado com esses filtros.</p>
         </div>
       ) : (
         <div className="bg-white rounded-3xl shadow-sm border border-slate-200/50 overflow-visible">
@@ -249,7 +313,7 @@ export default function MyOrdersView({ profile }: { profile: Profile }) {
             <table className="w-full text-left min-w-[1000px]">
               <thead className="bg-slate-50/80 backdrop-blur-sm sticky top-0 z-10 text-slate-400 text-[10px] font-black uppercase tracking-[0.2em]">
                 <tr>
-                  <th className="px-8 py-6 border-b border-slate-100">ID / Data</th>
+                  <th className="px-8 py-6 border-b border-slate-100">Código / Data</th>
                   {(isAdmin || isEmployee) && <th className="px-8 py-6 border-b border-slate-100">Cliente</th>}
                   <th className="px-8 py-6 border-b border-slate-100">Quantidade</th>
                   <th className="px-8 py-6 border-b border-slate-100">Local</th>
@@ -259,14 +323,16 @@ export default function MyOrdersView({ profile }: { profile: Profile }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {orders.map((order) => (
+                {filteredOrders.map((order) => (
                   <tr 
                     key={order.id} 
                     className="hover:bg-slate-50/50 transition-colors group cursor-pointer"
                     onClick={() => setTrackingOrder(order)}
                   >
                     <td className="px-8 py-6">
-                      <p className="text-xs font-mono font-bold text-slate-900">#{order.id.slice(0, 8).toUpperCase()}</p>
+                      <p className="text-xs font-mono font-bold text-slate-900">
+                        {order.codigo_pedido ? `#${order.codigo_pedido}` : `#${order.id.slice(0, 8).toUpperCase()}`}
+                      </p>
                       <p className="text-[10px] text-slate-500 font-medium mt-1">
                         {new Date(order.data_solicitada).toLocaleDateString('pt-BR')}
                       </p>
@@ -399,7 +465,7 @@ export default function MyOrdersView({ profile }: { profile: Profile }) {
               className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden"
             >
               <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                <h3 className="text-xl font-black text-slate-900">Rastreamento #{trackingOrder.id.slice(0, 8).toUpperCase()}</h3>
+                <h3 className="text-xl font-black text-slate-900">Rastreamento {trackingOrder.codigo_pedido ? `#${trackingOrder.codigo_pedido}` : `#${trackingOrder.id.slice(0, 8).toUpperCase()}`}</h3>
                 <button onClick={() => setTrackingOrder(null)} className="p-2 hover:bg-slate-200 rounded-xl transition-all">
                   <X size={20} />
                 </button>
@@ -460,7 +526,7 @@ export default function MyOrdersView({ profile }: { profile: Profile }) {
               className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden"
             >
               <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                <h3 className="text-xl font-black text-slate-900">Editar Pedido #{editingOrder.id.slice(0, 8).toUpperCase()}</h3>
+                <h3 className="text-xl font-black text-slate-900">Editar Pedido {editingOrder.codigo_pedido ? `#${editingOrder.codigo_pedido}` : `#${editingOrder.id.slice(0, 8).toUpperCase()}`}</h3>
                 <button onClick={() => setEditingOrder(null)} className="p-2 hover:bg-slate-200 rounded-xl transition-all">
                   <X size={20} />
                 </button>

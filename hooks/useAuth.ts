@@ -148,7 +148,21 @@ export function useAuth() {
   }, [fetchProfile]);
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+      
+      if (typeof window !== 'undefined') {
+        window.localStorage.clear();
+        window.sessionStorage.clear();
+        document.cookie.split(";").forEach((c) => {
+          document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+        });
+        window.location.href = '/login';
+      }
+    } catch (e) {
+      console.error('Logout error:', e);
+      if (typeof window !== 'undefined') window.location.href = '/login';
+    }
   }, []);
 
   const refreshProfile = useCallback(async () => {

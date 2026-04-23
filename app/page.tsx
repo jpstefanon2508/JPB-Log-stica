@@ -10,7 +10,6 @@ import {
   Briefcase,
   CircleUser, 
   Search, 
-  Bell, 
   TriangleAlert,
   ListFilter,
   CircleCheck,
@@ -35,6 +34,7 @@ import UsersView from '@/components/UsersView';
 import CompaniesView from '@/components/CompaniesView';
 import StaffView from '@/components/StaffView';
 import ProfileView from '@/components/ProfileView';
+import GlobalNotifications from '@/components/GlobalNotifications';
 
 type Tab = 'dashboard' | 'new-order' | 'my-orders' | 'users' | 'companies' | 'staff' | 'profile';
 
@@ -47,9 +47,9 @@ export default function Dashboard() {
   useEffect(() => {
     if (!loading) {
       if (!user) {
-        router.push('/login');
+        if (typeof window !== 'undefined') window.location.href = '/login';
       } else if (!isProfileComplete()) {
-        router.push('/complete-profile');
+        if (typeof window !== 'undefined') window.location.href = '/complete-profile';
       }
     }
   }, [user, loading, router, isProfileComplete]);
@@ -227,10 +227,7 @@ export default function Dashboard() {
               />
             </div>
 
-            <button className="p-2.5 hover:bg-slate-100 rounded-xl transition-colors relative text-slate-500">
-              <Bell size={22} />
-              <span className="absolute top-2.5 right-2.5 w-2.5 h-2.5 bg-secondary rounded-full border-2 border-white"></span>
-            </button>
+            <GlobalNotifications profile={profile} />
 
             <div className="h-10 w-px bg-slate-200"></div>
 
