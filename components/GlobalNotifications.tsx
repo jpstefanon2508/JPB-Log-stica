@@ -132,7 +132,7 @@ export default function GlobalNotifications({ profile }: { profile: Profile }) {
           });
 
           if ('Notification' in window && Notification.permission === 'granted') {
-            new window.Notification(`JPB Logística - ${newNotif.title}`, {
+            new window.Notification(`JPB Comercial - ${newNotif.title}`, {
               body: newNotif.message,
               icon: '/icon-192x192.png'
             });

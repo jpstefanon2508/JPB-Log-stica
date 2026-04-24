@@ -39,10 +39,26 @@ import GlobalNotifications from '@/components/GlobalNotifications';
 type Tab = 'dashboard' | 'new-order' | 'my-orders' | 'users' | 'companies' | 'staff' | 'profile';
 
 export default function Dashboard() {
-  const { user, profile, loading, signOut, isProfileComplete } = useAuth();
+  const { user, profile, loading, signOut } = useAuth();
   const router = useRouter();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (mobile) {
+        setIsSidebarOpen(false);
+      } else {
+        setIsSidebarOpen(true);
+      }
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     // Only handle redirects if we are definitively not loading anymore
@@ -52,11 +68,9 @@ export default function Dashboard() {
         // but avoid router push if it's trapped in a loading state. 
         // Using replace prevents back-button loops.
         router.replace('/login');
-      } else if (!isProfileComplete()) {
-        router.replace('/complete-profile');
       }
     }
-  }, [user, loading, router, isProfileComplete]);
+  }, [user, loading, router]);
 
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 
@@ -64,7 +78,7 @@ export default function Dashboard() {
     return (
       <div className="min-h-screen bg-primary flex flex-col items-center justify-center text-white p-6 text-center">
         <Loader2 className="animate-spin text-secondary mb-4" size={48} />
-        <p className="font-headline font-bold tracking-widest uppercase text-sm">Carregando JPB Logística...</p>
+        <p className="font-headline font-bold tracking-widest uppercase text-sm">Carregando JPB Comercial...</p>
       </div>
     );
   }
@@ -92,11 +106,22 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="flex min-h-screen bg-background overflow-hidden">
+    <div className="flex min-h-screen bg-background overflow-hidden relative">
+      {/* Mobile Backdrop */}
+      {isMobile && isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-slate-900/50 z-40 backdrop-blur-sm"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
       <motion.aside 
         initial={false}
-        animate={{ width: isSidebarOpen ? 256 : 80 }}
+        animate={{ 
+          x: isMobile ? (isSidebarOpen ? 0 : '-100%') : 0,
+          width: isMobile ? 256 : (isSidebarOpen ? 256 : 80) 
+        }}
         className="fixed left-0 top-0 h-screen bg-white text-slate-600 flex flex-col z-50 transition-all duration-300 ease-in-out border-r border-slate-200 shadow-xl"
       >
         <div className="h-20 flex items-center px-6 overflow-hidden border-b border-slate-100">
@@ -109,7 +134,7 @@ export default function Dashboard() {
                 exit={{ opacity: 0, x: -10 }}
                 className="whitespace-nowrap"
               >
-                <h1 className="text-xl font-black tracking-widest uppercase font-headline text-primary">JPB Logística</h1>
+                <h1 className="text-xl font-black tracking-widest uppercase font-headline text-primary">JPB Comercial</h1>
                 <p className="text-[10px] text-slate-400 font-medium tracking-[0.2em] uppercase mt-0.5">Thermal Control</p>
               </motion.div>
             ) : (
@@ -131,24 +156,33 @@ export default function Dashboard() {
             icon={<LayoutDashboard size={22} />} 
             label="Dashboard" 
             active={activeTab === 'dashboard'} 
-            collapsed={!isSidebarOpen}
-            onClick={() => setActiveTab('dashboard')}
+            collapsed={!isSidebarOpen && !isMobile}
+            onClick={() => {
+              setActiveTab('dashboard');
+              if (isMobile) setIsSidebarOpen(false);
+            }}
           />
           {!isEmployee && (
             <NavItem 
               icon={<ShoppingCart size={22} />} 
               label="Novo Pedido" 
               active={activeTab === 'new-order'} 
-              collapsed={!isSidebarOpen}
-              onClick={() => setActiveTab('new-order')}
+              collapsed={!isSidebarOpen && !isMobile}
+              onClick={() => {
+                setActiveTab('new-order');
+                if (isMobile) setIsSidebarOpen(false);
+              }}
             />
           )}
           <NavItem 
             icon={<Package size={22} />} 
             label={isAdmin ? 'Pedidos' : isEmployee ? 'Entregas' : 'Meus Pedidos'} 
             active={activeTab === 'my-orders'} 
-            collapsed={!isSidebarOpen}
-            onClick={() => setActiveTab('my-orders')}
+            collapsed={!isSidebarOpen && !isMobile}
+            onClick={() => {
+              setActiveTab('my-orders');
+              if (isMobile) setIsSidebarOpen(false);
+            }}
           />
           {isAdmin && (
             <>
@@ -156,22 +190,31 @@ export default function Dashboard() {
                 icon={<Users size={22} />} 
                 label="Usuários" 
                 active={activeTab === 'users'} 
-                collapsed={!isSidebarOpen}
-                onClick={() => setActiveTab('users')}
+                collapsed={!isSidebarOpen && !isMobile}
+                onClick={() => {
+                  setActiveTab('users');
+                  if (isMobile) setIsSidebarOpen(false);
+                }}
               />
               <NavItem 
                 icon={<Building2 size={22} />} 
                 label="Empresas" 
                 active={activeTab === 'companies'} 
-                collapsed={!isSidebarOpen}
-                onClick={() => setActiveTab('companies')}
+                collapsed={!isSidebarOpen && !isMobile}
+                onClick={() => {
+                  setActiveTab('companies');
+                  if (isMobile) setIsSidebarOpen(false);
+                }}
               />
               <NavItem 
                 icon={<Briefcase size={22} />} 
                 label="Equipe" 
                 active={activeTab === 'staff'} 
-                collapsed={!isSidebarOpen}
-                onClick={() => setActiveTab('staff')}
+                collapsed={!isSidebarOpen && !isMobile}
+                onClick={() => {
+                  setActiveTab('staff');
+                  if (isMobile) setIsSidebarOpen(false);
+                }}
               />
             </>
           )}
@@ -179,8 +222,11 @@ export default function Dashboard() {
             icon={<CircleUser size={22} />} 
             label="Perfil" 
             active={activeTab === 'profile'} 
-            collapsed={!isSidebarOpen}
-            onClick={() => setActiveTab('profile')}
+            collapsed={!isSidebarOpen && !isMobile}
+            onClick={() => {
+              setActiveTab('profile');
+              if (isMobile) setIsSidebarOpen(false);
+            }}
           />
         </nav>
 
@@ -198,8 +244,8 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <motion.main 
-        animate={{ marginLeft: isSidebarOpen ? 256 : 80 }}
-        className="flex-grow flex flex-col transition-all duration-300 ease-in-out"
+        animate={{ marginLeft: isMobile ? 0 : (isSidebarOpen ? 256 : 80) }}
+        className="flex-grow flex flex-col w-full transition-all duration-300 ease-in-out"
       >
         {/* Header */}
         <header className="sticky top-0 w-full z-40 bg-white/80 backdrop-blur-md border-b border-slate-200/50 flex justify-between items-center px-8 h-20">

@@ -164,24 +164,13 @@ export function useAuth() {
     }
   }, [user, fetchProfile]);
 
-  const isProfileComplete = useCallback(() => {
-    if (!profile) return false;
-    
-    // We only force clients to complete their profile
-    if (profile.perfil !== 'CLIENTE') return true;
-    
-    // If the user already has a company_id or an empresa, we consider it complete
-    return !!(profile.telefone && profile.empresa);
-  }, [profile]);
-
   const value = useMemo(() => ({
     user,
     profile,
     loading,
     signOut,
-    refreshProfile,
-    isProfileComplete
-  }), [user, profile, loading, signOut, refreshProfile, isProfileComplete]);
+    refreshProfile
+  }), [user, profile, loading, signOut, refreshProfile]);
 
   return value;
 }

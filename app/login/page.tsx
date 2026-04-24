@@ -102,7 +102,7 @@ export default function LoginPage() {
         setSuccess('Conta criada com sucesso! Redirecionando...');
         // Small delay to show success message
         setTimeout(() => {
-          router.push('/complete-profile');
+          router.push('/');
         }, 1500);
       }
     }
@@ -139,7 +139,7 @@ export default function LoginPage() {
             <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
               <span className="text-white font-black text-xl">JPB</span>
             </div>
-            <span className="text-xl font-black tracking-widest uppercase">JPB Logística</span>
+            <span className="text-xl font-black tracking-widest uppercase">JPB Comercial</span>
           </div>
 
           <motion.div
@@ -148,17 +148,10 @@ export default function LoginPage() {
             transition={{ duration: 0.6 }}
           >
             <h1 className="text-4xl md:text-6xl font-black leading-tight mb-6 font-headline">
-              {mode === 'login' ? (
-                <>Precision Thermal<br />Control Solutions.</>
-              ) : (
-                <>Thermal Control<br />at Your Fingertips.</>
-              )}
+              Qualidade em<br />Gelo Seco.
             </h1>
             <p className="text-slate-400 text-lg max-w-md leading-relaxed">
-              {mode === 'login' 
-                ? 'Otimizando a cadeia de frio para entrega e monitoramento de gelo seco de alto desempenho.'
-                : 'Junte-se ao líder da indústria em logística de precisão. Proteja sua cadeia de suprimentos com nossas soluções.'
-              }
+              Gestão de pedidos, facilitando o dia a dia da equipe e dos nossos clientes.
             </p>
           </motion.div>
         </div>
@@ -194,7 +187,7 @@ export default function LoginPage() {
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.4 }}
               >
-                <h2 className="text-3xl font-black text-slate-900 mb-2 font-headline">JPB Logística - Portal do Cliente</h2>
+                <h2 className="text-3xl font-black text-slate-900 mb-2 font-headline">JPB Comercial - Portal do Cliente</h2>
                 <p className="text-slate-500 mb-8">Entre para gerenciar seus pedidos de gelo seco</p>
 
                 <button 
@@ -272,7 +265,7 @@ export default function LoginPage() {
                   </button>
 
                   <p className="text-center text-sm text-slate-500 mt-6">
-                    Novo na JPB Logística?{' '}
+                    Novo na JPB Comercial?{' '}
                     <button 
                       type="button"
                       onClick={() => setMode('signup')}
@@ -416,7 +409,7 @@ export default function LoginPage() {
 
       {/* Footer Info */}
       <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-8 text-[10px] font-bold text-slate-400 uppercase tracking-widest pointer-events-none md:pointer-events-auto">
-        <span>© 2024 JPB LOGÍSTICA INC.</span>
+        <span>© 2024 JPB COMERCIAL INC.</span>
         <button className="hover:text-slate-600">SUPORTE</button>
         <button className="hover:text-slate-600">TERMOS</button>
       </div>

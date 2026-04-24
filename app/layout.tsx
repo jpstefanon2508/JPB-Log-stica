@@ -14,7 +14,7 @@ const manrope = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: 'JPB Logística | Thermal Control Admin',
+  title: 'JPB Comercial | Thermal Control Admin',
   description: 'Sistema de gestão de logística e pedidos de gelo seco com controle térmico.',
 };
 
